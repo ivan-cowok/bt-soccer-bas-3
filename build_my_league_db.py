@@ -171,7 +171,8 @@ config = {
         "criterion":        "map",
         "num_workers":      0,
         "lowres_loss":      True,
-        "highres_loss":     True
+        "highres_loss":     True,
+        "freeze_backbone_epochs": 5
     },
     "model": {
         "hr_dim":             [360, 640],
