@@ -69,9 +69,9 @@ def resolve_ffmpeg(explicit):
             continue
     return None
 
-VIDEO_ROOT  = Path(r"E:\Database\44\soccer_data")
-FRAMES_ROOT = Path(r"E:\Database\44\soccer_data_frames")
-DATA_DIR    = Path(r"C:\Users\a\Documents\44\AdaSpot-main\data\my_league")
+VIDEO_ROOT  = Path(r"/workspace/44/data/competition_videos")
+FRAMES_ROOT = Path(r"/workspace/44/data/soccer_data_frames")
+DATA_DIR    = Path(r"/workspace/44/bt-soccer-bas-3\my_league")
 SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_MY_LEAGUE_CONFIG = SCRIPT_DIR / 'config' / 'MyLeague' / 'MyLeague_finetune.json'
 FPS = 25
