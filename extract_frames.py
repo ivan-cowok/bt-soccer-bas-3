@@ -115,7 +115,7 @@ def frames_done(out_dir: Path) -> bool:
 
 def extract(video_rel: str, skip_done: bool, ffmpeg: str, vf: str) -> bool:
     """Extract frames for one clip. Returns True on success."""
-    src = VIDEO_ROOT / video_rel / '224.mp4'
+    src = VIDEO_ROOT / video_rel / '224p.mp4'
     out_dir = FRAMES_ROOT / video_rel
 
     if not src.exists():
