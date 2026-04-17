@@ -197,10 +197,10 @@ class ActionSpotDataset(Dataset):
 
         output = {}
         output['frame'] = frames
-        output['contains_event'] = int(np.sum(labels) > 0)
-        output['label'] = labels
+        output['contains_event'] = torch.tensor(int(np.sum(labels) > 0))
+        output['label'] = torch.from_numpy(labels)
         if self._dataset == 'f3set':
-            output['labelE'] = labelsE
+            output['labelE'] = torch.from_numpy(labelsE)
 
         return output
 
@@ -287,7 +287,7 @@ class ActionSpotVideoDataset(Dataset):
                 video_name, start, start + self._clip_len * self._stride, pad=True,
                 stride=self._stride)
 
-        return {'video': video_name, 'start': start // self._stride,
+        return {'video': video_name, 'start': torch.tensor(start // self._stride),
                 'frame': frames}
 
     def get_labels(self, video):
@@ -525,7 +525,10 @@ class FrameReaderVideo:
                 n_pad_end += 1
 
         if len(ret) == 0:
-            return -1 # Return -1 if no frames were loaded
+            # Return a zero-filled tensor rather than the bare int -1 so that
+            # default_collate never receives a non-tensor in the 'frame' slot.
+            clip_len = (end - start + stride - 1) // stride
+            return torch.zeros(clip_len, 3, 1, 1, dtype=torch.uint8)
 
         ret = torch.stack(ret, dim=int(len(ret[0].shape) == 4))
 

@@ -1,4 +1,5 @@
 # Global imports
+import torch
 import numpy as np
 from tqdm import tqdm
 from torch.utils.data import DataLoader
@@ -271,11 +272,15 @@ def evaluate(model, dataset, split, classes, save_pred=None, printed = True,
 
     batch_size = INFERENCE_BATCH_SIZE
     num_workers = 8
+    _dl_kwargs = dict(
+        batch_size=batch_size,
+        num_workers=num_workers,
+        pin_memory=(num_workers > 0 and torch.cuda.is_available()),
+    )
+    if num_workers > 0:
+        _dl_kwargs['prefetch_factor'] = 1
 
-    for clip in tqdm(DataLoader(
-            dataset, num_workers=num_workers, pin_memory=True,
-            batch_size=batch_size, prefetch_factor=1,
-    )):
+    for clip in tqdm(DataLoader(dataset, **_dl_kwargs)):
 
         # Batched by dataloader
         batch_pred_cls, batch_pred_scores = model.predict(clip['frame'])
