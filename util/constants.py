@@ -2,7 +2,7 @@
 We define constants here that are used across the codebase.
 '''
 
-LABELS_SNB_PATH = 'E:\\Database\\44\\soccer_data'
+LABELS_SNB_PATH = 'E:/Database/44/soccer_data'
 STRIDE = 1
 STRIDE_SNB = 1
 EVAL_SPLITS = ['val']

@@ -69,9 +69,14 @@ def resolve_ffmpeg(explicit):
             continue
     return None
 
-VIDEO_ROOT  = Path(r"/workspace/44/data/competition_videos")
-FRAMES_ROOT = Path(r"/workspace/44/data/soccer_data_frames")
-DATA_DIR    = Path(r"/workspace/44/bt-soccer-bas-3/data/my_league")
+#VIDEO_ROOT  = Path(r"/workspace/44/data/competition_videos")
+#FRAMES_ROOT = Path(r"/workspace/44/data/soccer_data_frames")
+#DATA_DIR    = Path(r"/workspace/44/bt-soccer-bas-3/data/my_league")
+
+VIDEO_ROOT  = Path(r"E:/Database/44/soccer_data")
+FRAMES_ROOT = Path(r"E:/Database/44/soccer_data_frames")
+DATA_DIR    = Path(r"data/my_league")
+
 SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_MY_LEAGUE_CONFIG = SCRIPT_DIR / 'config' / 'MyLeague' / 'MyLeague_finetune.json'
 FPS = 25
@@ -115,7 +120,7 @@ def frames_done(out_dir: Path) -> bool:
 
 def extract(video_rel: str, skip_done: bool, ffmpeg: str, vf: str) -> bool:
     """Extract frames for one clip. Returns True on success."""
-    src = VIDEO_ROOT / video_rel / '224p.mp4'
+    src = VIDEO_ROOT / video_rel / '224.mp4'
     out_dir = FRAMES_ROOT / video_rel
 
     if not src.exists():

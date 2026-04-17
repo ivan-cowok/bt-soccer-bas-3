@@ -3,11 +3,18 @@
 File containing the main training script for T-DEED.
 """
 
+# Force HuggingFace Hub offline before any timm/transformers import.
+# timm 0.9+ fetches model configs from HF Hub even with pretrained=False;
+# on Windows that network call causes a 0xC0000005 access violation crash.
+# If the model config is not yet cached, run once WITHOUT this flag,
+# or set HF_TOKEN in your environment to authenticate.
+import os
+os.environ.setdefault('HF_HUB_OFFLINE', '1')
+
 #Standard imports
 import torch
 import numpy as np
 import random
-import os
 import argparse
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import SequentialLR, LinearLR, CosineAnnealingLR
@@ -115,15 +122,21 @@ def main(args):
     classes, train_data, val_data, val_data_frames, elements = get_datasets(args.data, only_test = args.training.only_test)
 
     # Dataloaders
-    train_loader = DataLoader(
-        train_data, shuffle=False, batch_size=args.training.batch_size, # It is already random in get one
-        pin_memory=True, num_workers=args.training.num_workers,
-        prefetch_factor=1, worker_init_fn=worker_init_fn) 
-        
-    val_loader = DataLoader(
-        val_data, shuffle=False, batch_size=args.training.batch_size,
-        pin_memory=True, num_workers=args.training.num_workers,
-        prefetch_factor=1, worker_init_fn=worker_init_fn)
+    num_workers = args.training.num_workers
+    # pin_memory=True starts a background CUDA-init thread even with num_workers=0,
+    # which causes 0xC0000005 access violations on Windows. Only enable it when
+    # workers are also enabled (Linux / multi-process path).
+    loader_kwargs = dict(
+        shuffle=True, batch_size=args.training.batch_size,
+        pin_memory=(num_workers > 0), num_workers=num_workers,
+        worker_init_fn=worker_init_fn,
+    )
+    if num_workers > 0:
+        loader_kwargs['prefetch_factor'] = 1
+
+    train_loader = DataLoader(train_data, **loader_kwargs)
+
+    val_loader = DataLoader(val_data, **loader_kwargs)
                 
     # Model
     model = AdaSpot(args_model=args.model, args_training=args.training, classes=classes, elements=elements)

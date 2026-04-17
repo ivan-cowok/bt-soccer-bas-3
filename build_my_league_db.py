@@ -18,11 +18,13 @@ from collections import Counter, defaultdict
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 
-LABELS_ROOT   = r'/workspace/44/data/competition_videos'
+#LABELS_ROOT   = r'/workspace/44/data/soccer_data'
+LABELS_ROOT   = r'E:/Database/44/soccer_data'
 ADASPOT_ROOT  = os.path.dirname(os.path.abspath(__file__))
 DATA_OUT_DIR  = os.path.join(ADASPOT_ROOT, 'data', 'my_league')
 CFG_OUT_DIR   = os.path.join(ADASPOT_ROOT, 'config', 'MyLeague')
-FRAME_DIR     = r'/workspace/44/data/soccer_data_frames'   # where frames will live
+#FRAME_DIR     = r'/workspace/44/data/soccer_data_frames'   # where frames will live
+FRAME_DIR     = r'E:/Database/44/soccer_data_frames'   # where frames will live
 SAVE_DIR      = os.path.join(ADASPOT_ROOT, 'checkpoints', 'MyLeague')
 
 FPS           = 25          # assumed frame rate for your clips
@@ -125,6 +127,7 @@ config = {
     },
     "data": {
         "dataset":          "soccernetball",
+        "data_dir":         "data/my_league",
         "num_classes":      len(class_names),
         "clip_len":         160,
         "epoch_num_frames": 200000,
@@ -135,11 +138,11 @@ config = {
         "batch_size":       1,
         "num_epochs":       30,
         "warm_up_epochs":   3,
-        "start_val_epoch":  5,
+        "start_val_epoch":  0,
         "learning_rate":    0.0002,
         "only_test":        False,
         "criterion":        "map",
-        "num_workers":      4,
+        "num_workers":      0,
         "lowres_loss":      True,
         "highres_loss":     True
     },
@@ -159,7 +162,9 @@ config = {
         "roi_spatial_increase": 10,
         "roi_size_step":      28,
         "use_full_hr":        True,
-        "use_cbam":           True
+        "use_cbam":           True,
+        "pretrained":         False,
+        "init_checkpoint":    "config/pretrained/SoccernetBall_Big/checkpoint_best.pt"
     }
 }
 cfg_path = os.path.join(CFG_OUT_DIR, 'MyLeague_finetune.json')
