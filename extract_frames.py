@@ -69,7 +69,7 @@ def resolve_ffmpeg(explicit):
             continue
     return None
 
-VIDEO_ROOT  = Path(r"/workspace/44/data/competition_videos")
+VIDEO_ROOT  = Path(r"/workspace/44/data/soccer_data")
 FRAMES_ROOT = Path(r"/workspace/44/data/soccer_data_frames")
 DATA_DIR    = Path(r"/workspace/44/bt-soccer-bas-3/data/my_league")
 
