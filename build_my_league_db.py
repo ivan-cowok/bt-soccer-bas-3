@@ -11,10 +11,24 @@ performs a 90/10 train/val split (seeded), and writes:
 (No test split / test.json — validation only.)
 
 Also patches util/constants.py with the correct LABELS_SNB_PATH and GAMES_SNB.
+
+Quiet by default (one summary line). Use -v / --verbose for label distribution,
+per-class counts, split details, paths, and the full "next steps" banner.
 """
 
+import argparse
 import json, os, glob, random
-from collections import Counter, defaultdict
+from collections import Counter
+
+# ── CLI ───────────────────────────────────────────────────────────────────────
+_parser = argparse.ArgumentParser(description='Build data/my_league from Labels-ball.json files.')
+_parser.add_argument(
+    '-v', '--verbose',
+    action='store_true',
+    help='Print label counts, per-class distribution, and full next-steps banner.',
+)
+_cli = _parser.parse_args()
+VERBOSE = _cli.verbose
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 
@@ -34,7 +48,8 @@ TRAIN_RATIO   = 0.9
 
 # ── Collect all clips ─────────────────────────────────────────────────────────
 all_jsons = sorted(glob.glob(os.path.join(LABELS_ROOT, '**', 'Labels-ball.json'), recursive=True))
-print(f'Found {len(all_jsons)} Labels-ball.json files')
+if VERBOSE:
+    print(f'Found {len(all_jsons)} Labels-ball.json files')
 
 clips       = []   # list of dicts: {video, num_frames, labels_data}
 label_count = Counter()
@@ -65,15 +80,17 @@ for jpath in all_jsons:
         '_anns':      anns,
     })
 
-print(f'Usable clips: {len(clips)}  |  Skipped (empty): {len(skipped)}')
-print(f'Total annotations: {sum(label_count.values())}')
-print('Label distribution:')
-for lab, cnt in label_count.most_common():
-    print(f'  {lab}: {cnt}')
+if VERBOSE:
+    print(f'Usable clips: {len(clips)}  |  Skipped (empty): {len(skipped)}')
+    print(f'Total annotations: {sum(label_count.values())}')
+    print('Label distribution:')
+    for lab, cnt in label_count.most_common():
+        print(f'  {lab}: {cnt}')
 
 # ── Class list (sorted by frequency, most common first) ──────────────────────
 class_names = [lab for lab, _ in label_count.most_common()]
-print(f'\nClasses ({len(class_names)}): {class_names}')
+if VERBOSE:
+    print(f'\nClasses ({len(class_names)}): {class_names}')
 
 # ── 90/10 split (seeded) ─────────────────────────────────────────────────────
 random.seed(SEED)
@@ -82,7 +99,8 @@ random.shuffle(shuffled)
 n_train   = round(len(shuffled) * TRAIN_RATIO)
 train_clips = shuffled[:n_train]
 val_clips   = shuffled[n_train:]
-print(f'\nSplit -> train: {len(train_clips)}  val: {len(val_clips)}')
+if VERBOSE:
+    print(f'\nSplit -> train: {len(train_clips)}  val: {len(val_clips)}')
 
 # ── Helper: strip internal field, write JSON ─────────────────────────────────
 def to_json_entry(clip):
@@ -104,7 +122,8 @@ class_txt = os.path.join(DATA_OUT_DIR, 'class.txt')
 with open(class_txt, 'w', encoding='utf-8') as f:
     for name in class_names:
         f.write(name + '\n')
-print(f'\nWrote {class_txt}')
+if VERBOSE:
+    print(f'\nWrote {class_txt}')
 
 # train.json / val.json only
 write_json(os.path.join(DATA_OUT_DIR, 'train.json'),
@@ -114,9 +133,11 @@ write_json(os.path.join(DATA_OUT_DIR, 'val.json'),
 obsolete_test = os.path.join(DATA_OUT_DIR, 'test.json')
 if os.path.isfile(obsolete_test):
     os.remove(obsolete_test)
-    print(f'Removed obsolete {obsolete_test}')
-print(f'Wrote train.json ({len(train_clips)} videos)')
-print(f'Wrote val.json  ({len(val_clips)} videos)')
+    if VERBOSE:
+        print(f'Removed obsolete {obsolete_test}')
+if VERBOSE:
+    print(f'Wrote train.json ({len(train_clips)} videos)')
+    print(f'Wrote val.json  ({len(val_clips)} videos)')
 
 # ── Write config/MyLeague/MyLeague_finetune.json ──────────────────────────────
 os.makedirs(CFG_OUT_DIR, exist_ok=True)
@@ -169,7 +190,8 @@ config = {
 }
 cfg_path = os.path.join(CFG_OUT_DIR, 'MyLeague_finetune.json')
 write_json(cfg_path, config, pretty=True)
-print(f'\nWrote {cfg_path}')
+if VERBOSE:
+    print(f'\nWrote {cfg_path}')
 
 # ── Patch util/constants.py ───────────────────────────────────────────────────
 train_vids = [c['video'] for c in train_clips]
@@ -213,19 +235,25 @@ INFERENCE_BATCH_SIZE = 4
 
 with open(constants_path, 'w', encoding='utf-8') as f:
     f.write(new_constants)
-print(f'Patched {constants_path}')
+if VERBOSE:
+    print(f'Patched {constants_path}')
 
-# ── Summary ───────────────────────────────────────────────────────────────────
-print('\n' + '='*60)
-print('DONE. Next steps:')
-print('='*60)
-print(f'1. Extract video frames to:  {FRAME_DIR}')
-print( '   Naming: frame0.jpg, frame1.jpg, ... at 25 fps')
-print( '   Folder per clip:  <FRAME_DIR>/<video_path>/')
-print( '   (e.g., E:\\Database\\44\\soccer_data_frames\\my_league\\2026-2027\\0484fd09bc994720bf73cb35545ea9\\frame0.jpg)')
-print( '2. Train:')
-print(f'   python main.py --model_name MyLeague_finetune --seed 1')
-print( '   (first run with store_mode="store", then switch to "load")')
-print(f'3. Inference:')
-print(f'   python visualize.py --video_path <your_clip.mp4>')
-print( '   (update visualize.py CONFIG_PATH/CHECKPOINT_PATH if needed)')
+# ── Summary (quiet: one line; verbose: full banner) ────────────────────────────
+print(
+    f'my_league: {len(train_clips)} train / {len(val_clips)} val | '
+    f'{len(class_names)} classes | {DATA_OUT_DIR}'
+)
+if VERBOSE:
+    print('\n' + '='*60)
+    print('DONE. Next steps:')
+    print('='*60)
+    print(f'1. Extract video frames to:  {FRAME_DIR}')
+    print('   Naming: frame0.jpg, frame1.jpg, ... at 25 fps')
+    print('   Folder per clip:  <FRAME_DIR>/<video_path>/')
+    print('   (e.g., E:\\Database\\44\\soccer_data_frames\\my_league\\2026-2027\\0484fd09bc994720bf73cb35545ea9\\frame0.jpg)')
+    print('2. Train:')
+    print('   python main.py --model_name MyLeague_finetune --seed 1')
+    print('   (first run with store_mode="store", then switch to "load")')
+    print('3. Inference:')
+    print('   python visualize.py --video_path <your_clip.mp4>')
+    print('   (update visualize.py CONFIG_PATH/CHECKPOINT_PATH if needed)')
