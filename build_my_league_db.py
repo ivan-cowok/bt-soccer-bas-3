@@ -17,7 +17,7 @@ per-class counts, split details, paths, and the full "next steps" banner.
 """
 
 import argparse
-import json, os, glob, random
+import json, os, random
 from collections import Counter
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
@@ -47,7 +47,13 @@ SEED          = 42
 TRAIN_RATIO   = 0.9
 
 # ── Collect all clips ─────────────────────────────────────────────────────────
-all_jsons = sorted(glob.glob(os.path.join(LABELS_ROOT, '**', 'Labels-ball.json'), recursive=True))
+# glob does not follow symlinks; use os.walk with followlinks=True instead.
+all_jsons = sorted(
+    os.path.join(root, fname)
+    for root, _dirs, files in os.walk(LABELS_ROOT, followlinks=True)
+    for fname in files
+    if fname == 'Labels-ball.json'
+)
 if VERBOSE:
     print(f'Found {len(all_jsons)} Labels-ball.json files')
 
