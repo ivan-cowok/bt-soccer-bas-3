@@ -126,7 +126,7 @@ config = {
     "data": {
         "dataset":          "soccernetball",
         "num_classes":      len(class_names),
-        "clip_len":         100,
+        "clip_len":         160,
         "epoch_num_frames": 200000,
         "mixup":            True,
         "store_mode":       "store"
