@@ -24,7 +24,7 @@ from collections import Counter
 _parser = argparse.ArgumentParser(description='Build data/my_league from Labels-ball.json files.')
 _parser.add_argument(
     '-v', '--verbose',
-    action='store_true',
+    action='store_false',
     help='Print label counts, per-class distribution, and full next-steps banner.',
 )
 _cli = _parser.parse_args()
