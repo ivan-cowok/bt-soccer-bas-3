@@ -3,6 +3,7 @@ import abc
 import torch
 import torch.nn as nn
 from timm import create_model
+from huggingface_hub.errors import LocalEntryNotFoundError, OfflineModeIsEnabled
 import numpy as np
 import torch.nn.functional as F
 import math
@@ -101,12 +102,22 @@ class CustomRegNetY(nn.Module):
     def __init__(self, feature_arch='rny002', pretrained=True):
         super().__init__()
 
-        base = create_model({
-                    'rny002': 'regnety_002',
-                    'rny004': 'regnety_004',
-                    'rny006': 'regnety_006',
-                    'rny008': 'regnety_008',
-                }[feature_arch.rsplit('_', 1)[0]], pretrained=pretrained)
+        timm_name = {
+            'rny002': 'regnety_002',
+            'rny004': 'regnety_004',
+            'rny006': 'regnety_006',
+            'rny008': 'regnety_008',
+        }[feature_arch.rsplit('_', 1)[0]]
+
+        try:
+            base = create_model(timm_name, pretrained=pretrained)
+        except (LocalEntryNotFoundError, OfflineModeIsEnabled):
+            # HF_HUB_OFFLINE or empty cache: build backbone without ImageNet weights
+            # (training uses init_checkpoint / checkpoint; inference loads checkpoint_best.pt).
+            if pretrained:
+                base = create_model(timm_name, pretrained=False)
+            else:
+                raise
 
         # Keep reference to original blocks
         self.stem = base.stem

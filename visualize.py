@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+import os
+os.environ.setdefault('HF_HUB_OFFLINE', '1')
+
 """
 AdaSpot – Soccer action detector + video visualizer.
 
@@ -22,7 +25,6 @@ Optional flags:
 """
 
 import argparse
-import os
 import json
 import torch
 import numpy as np
@@ -46,18 +48,12 @@ CONFIG_PATH     = os.path.join(_BASE, 'config', 'SoccerNetBall', 'SoccerNetBall_
 CHECKPOINT_PATH = os.path.join(_BASE, 'config', 'pretrained', 'SoccernetBall_Big', 'checkpoint_best.pt')
 CLASSES_PATH    = os.path.join(_BASE, 'data',   'soccernetball', 'class.txt')
 
-# ── One BGR colour per class (10 classes) ────────────────────────────────────
+# ── BGR colours for class legend / timeline (cycles with idx % len) ─────────
 _COLORS_BGR = [
-    (  0, 200, 255),  # PASS
-    (  0, 255, 100),  # DRIVE
-    (255, 100,   0),  # HEADER
-    (255,   0, 200),  # HIGH PASS
-    (  0, 170, 255),  # OUT
-    (100, 255, 255),  # CROSS
-    (255, 200,   0),  # THROW IN
-    (  0, 100, 255),  # SHOT
-    (180,   0, 255),  # BALL PLAYER BLOCK
-    ( 50, 255,  50),  # PLAYER SUCCESSFUL TACKLE
+    (  0, 200, 255), (  0, 255, 100), (255, 100,   0), (255,   0, 200),
+    (  0, 170, 255), (100, 255, 255), (255, 200,   0), (  0, 100, 255),
+    (180,   0, 255), ( 50, 255,  50), (255, 128, 128), (128, 255,  64),
+    ( 64, 128, 255), (255,  64, 192), (192, 255,  64), ( 64, 255, 192),
 ]
 
 

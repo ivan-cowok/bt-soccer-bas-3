@@ -41,7 +41,9 @@ class AdaSpot(BaseRGBModel):
 
             # Get main backbones (low-res and high-res) --> high-res a copy of low-res identical
             if self._feature_arch.startswith(('rny002', 'rny004', 'rny006', 'rny008')):
-                pretrained_backbone = getattr(args, 'pretrained', True)
+                # Default False: timm ImageNet weights need Hugging Face Hub; omitting
+                # "pretrained" in JSON avoids download (use init_checkpoint / full ckpt instead).
+                pretrained_backbone = getattr(args, 'pretrained', False)
                 backbone = CustomRegNetY(self._feature_arch, pretrained=pretrained_backbone)
                 self.d = backbone.ds[-1]
                 backbone.head.fc = nn.Identity()
@@ -461,7 +463,7 @@ class AdaSpot(BaseRGBModel):
     def clean_modules(self):
         self._model.clean_modules()
 
-    def epoch(self, loader, optimizer=None, scaler=None, lr_scheduler=None, fg_weight=5):
+    def epoch(self, loader, optimizer=None, scaler=None, lr_scheduler=None, fg_weight=10):
 
         if optimizer is None:
             inference = True

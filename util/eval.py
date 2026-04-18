@@ -652,6 +652,11 @@ def process_frame_predictions_inference(
         dataset, classes, scores, support, high_recall_score_threshold=0.05
 ):
     classes_inv = {v: k for k, v in classes.items()}
+    # Model outputs bg + N actions; class.txt may have fewer than N lines — fill names.
+    n_cls = int(scores.shape[1])
+    for j in range(1, n_cls):
+        if j not in classes_inv:
+            classes_inv[j] = 'class_{}'.format(j)
 
     if np.min(support) == 0:
         support[support == 0] = 1
@@ -681,7 +686,7 @@ def process_frame_predictions_inference(
 
     return events, events_high_recall, pred_scores
 
-def inference(model, inference_loader, classes, threshold=0.5):
+def inference(model, inference_loader, classes, threshold=0.5, no_snms=False):
 
     stride = inference_loader.dataset._stride
     video_len = inference_loader.dataset._video_len
@@ -692,7 +697,9 @@ def inference(model, inference_loader, classes, threshold=0.5):
     if dataset == 'soccernetball':
         windows = WINDOWS_SNB
 
-    predictions = np.zeros((video_len // stride, len(classes)+1), np.float32)
+    # Must match model head width (bg + actions), not len(class.txt)+1 — they can disagree.
+    n_out = getattr(model, '_num_classes', len(classes) + 1)
+    predictions = np.zeros((video_len // stride, n_out), np.float32)
     support = np.zeros((video_len // stride), np.int32)
 
     for frames, starts in tqdm(inference_loader):
@@ -715,7 +722,13 @@ def inference(model, inference_loader, classes, threshold=0.5):
     pred_events, pred_events_high_recall, pred_scores = \
             process_frame_predictions_inference(dataset, classes, predictions, support, high_recall_score_threshold=threshold)
     
-    pred_events_high_recall_store = soft_non_maximum_supression([{'events': pred_events_high_recall}], window = windows[1], threshold=threshold)
+    if no_snms:
+        out_events = {'events': pred_events_high_recall}
+        print('Storing predictions (no SNMS)')
+    else:
+        out_events = soft_non_maximum_supression(
+            [{'events': pred_events_high_recall}], window=windows[1], threshold=threshold)[0]
+        print('Storing predictions with SNMS')
 
-    print('Storing predictions with SNMS')
-    store_json_inference('inference_output', pred_events_high_recall_store[0], stride = stride)
+    store_json_inference('inference_output', out_events, stride=stride)
+    return out_events['events'], stride, video_len
