@@ -175,8 +175,8 @@ config = {
         "freeze_backbone_epochs": 5
     },
     "model": {
-        "hr_dim":             [360, 640],
-        "hr_crop":            [360, 640],
+        "hr_dim":             [432, 768],
+        "hr_crop":            [432, 768],
         "lr_dim":             [224, 398],
         "lr_crop":            [224, 398],
         "roi_size":           [112, 112],
