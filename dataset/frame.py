@@ -328,39 +328,41 @@ class ActionSpotVideoDataset(Dataset):
     @property
     def labels(self):
         assert self._stride > 0
-        if self._stride == 1:
+        if self._stride == 1 and self._dataset != 'soccernetball':
+            # Non-soccernetball datasets already have 'events' in the JSON.
             return self._labels
-        else:
-            labels = []
-            for x in self._labels:
-                x_copy = copy.deepcopy(x)
-                
-                if (self._dataset == 'soccernetball'):
-                    x_copy['fps'] = FPS_SNB / self._stride
-                else:
-                    x_copy['fps'] /= self._stride
-                x_copy['num_frames'] //= self._stride
+        # For soccernetball (any stride) or stride > 1 for other datasets:
+        # build a list that always includes an 'events' key so that
+        # parse_ground_truth never falls back to the SoccerNet Labels-v2 path.
+        labels = []
+        for x in self._labels:
+            x_copy = copy.deepcopy(x)
 
+            if self._dataset == 'soccernetball':
+                x_copy['fps'] = FPS_SNB / self._stride
+            else:
+                x_copy['fps'] /= self._stride
+            x_copy['num_frames'] //= self._stride
 
-                if self._dataset == 'soccernetball':
-                    labels_file = load_json(os.path.join(LABELS_SNB_PATH, x_copy['video'] + '/Labels-ball.json'))['annotations']
-                    i = 0
-                    while i < len(labels_file):
-                        e = labels_file[i]
-                        e['frame'] = int(int(e['position']) / 1000 * FPS_SNB) // self._stride
-                        if e['label'] not in self._class_dict: 
-                            labels_file.pop(i)
-                        else:
-                            i += 1
-                            
-                    x_copy['events'] = labels_file
+            if self._dataset == 'soccernetball':
+                labels_file = load_json(
+                    os.path.join(LABELS_SNB_PATH, x_copy['video'] + '/Labels-ball.json')
+                )['annotations']
+                i = 0
+                while i < len(labels_file):
+                    e = labels_file[i]
+                    e['frame'] = int(int(e['position']) / 1000 * FPS_SNB) // self._stride
+                    if e['label'] not in self._class_dict:
+                        labels_file.pop(i)
+                    else:
+                        i += 1
+                x_copy['events'] = labels_file
+            else:
+                for e in x_copy['events']:
+                    e['frame'] //= self._stride
 
-                else:
-                    for e in x_copy['events']:
-                        e['frame'] //= self._stride
-
-                labels.append(x_copy)
-            return labels
+            labels.append(x_copy)
+        return labels
 
     def print_info(self):
         _print_info_helper(self._src_file, self._labels)

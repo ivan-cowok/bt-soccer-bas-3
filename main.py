@@ -254,7 +254,14 @@ def main(args):
                 store_json(os.path.join(args.paths.save_dir, 'loss.json'), losses,
                             pretty=True)
 
-                # Store model (if better)
+                # Full weights every epoch (same tensor dict as checkpoint_best.pt)
+                torch.save(
+                    model.state_dict(),
+                    os.path.join(
+                        os.getcwd(), args.paths.save_dir,
+                        f'checkpoint_epoch_{epoch:04d}.pt'))
+
+                # Best-so-far weights (when criterion improves)
                 if better:
                     torch.save(
                         model.state_dict(),

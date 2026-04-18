@@ -1,13 +1,16 @@
 # Global imports
 import torch
+import torch.nn.functional as F
 import numpy as np
 from tqdm import tqdm
 from torch.utils.data import DataLoader
+from torch.utils.data._utils.collate import default_collate
 import copy
 from collections import defaultdict
 from tabulate import tabulate
 from itertools import groupby
 import os
+import platform
 import zipfile
 from SoccerNet.Evaluation.utils import LoadJsonFromZip
 from SoccerNet.Evaluation.ActionSpotting import average_mAP
@@ -17,6 +20,37 @@ import json
 from util.constants import TOLERANCES, TOLERANCES_SNB, WINDOWS, WINDOWS_SNB, INFERENCE_BATCH_SIZE, GAMES_SNB
 from util.score import compute_mAPs
 from util.io import store_json, store_json_snb, store_json_inference
+
+
+def _video_collate_fn(batch):
+    """Collate for ActionSpotVideoDataset.
+
+    Clips from different videos may have different H×W (different source
+    resolutions / aspect ratios).  default_collate would crash with
+    'Trying to resize storage that is not resizable'.
+    We resize every frame tensor to match the first element's spatial size
+    before stacking so the model's internal resizing layers see consistent
+    batched inputs.
+    """
+    frames = [item['frame'] for item in batch]
+    t_h, t_w = frames[0].shape[-2], frames[0].shape[-1]
+
+    resized = []
+    for f in frames:
+        if f.shape[-2] != t_h or f.shape[-1] != t_w:
+            T, C, H, W = f.shape
+            f = F.interpolate(
+                f.float().view(T, C, H, W),
+                size=(t_h, t_w),
+                mode='bilinear',
+                align_corners=False,
+            ).to(f.dtype).view(T, C, t_h, t_w)
+        resized.append(f)
+
+    other = default_collate([{k: v for k, v in item.items() if k != 'frame'}
+                              for item in batch])
+    other['frame'] = torch.stack(resized, dim=0)
+    return other
 
 class ErrorStat:
 
@@ -271,11 +305,13 @@ def evaluate(model, dataset, split, classes, save_pred=None, printed = True,
             np.zeros(video_len, np.int32))
 
     batch_size = INFERENCE_BATCH_SIZE
-    num_workers = 8
+    # Windows multiprocessing is unreliable for DataLoader workers; use 0 there.
+    num_workers = 0 if platform.system() == 'Windows' else 8
     _dl_kwargs = dict(
         batch_size=batch_size,
         num_workers=num_workers,
         pin_memory=(num_workers > 0 and torch.cuda.is_available()),
+        collate_fn=_video_collate_fn,
     )
     if num_workers > 0:
         _dl_kwargs['prefetch_factor'] = 1

@@ -18,6 +18,10 @@ def get_datasets(args, only_test = False):
         return classes, None, None, None, elements
 
     dataset_len = args.epoch_num_frames // args.clip_len
+    # Val loss needs far fewer random clips than training.
+    # Cap at 20 % of training length (min 100) so it doesn't waste time
+    # drawing 1 250 random clips from only 18 validation videos.
+    val_dataset_len = max(100, dataset_len // 5)
     if args.dataset == 'soccernetball':
         stride = STRIDE_SNB
     else:
@@ -39,7 +43,7 @@ def get_datasets(args, only_test = False):
     dataset_kwargs['mixup'] = False # Disable mixup for validation
 
     val_data = ActionSpotDataset(
-        os.path.join(data_dir, 'val.json'), **dataset_kwargs)
+        os.path.join(data_dir, 'val.json'), **{**dataset_kwargs, 'dataset_len': val_dataset_len})
     val_data.print_info()
 
     val_dataset_kwargs = {
